@@ -1,6 +1,6 @@
 {
   "name": "milestone-timeline",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "description": "Visual timeline of milestones extracted from your notes",
   "main": "main.js",
   "scripts": {
