@@ -439,6 +439,29 @@ npm run build
 npm run dev
 ```
 
+### Deploying to Your Vault
+If your vault is in cloud storage (iCloud, Dropbox, etc.) and you want to avoid syncing `node_modules`:
+
+1. Copy the example config:
+   ```bash
+   cp deploy-config.example.json deploy-config.json
+   ```
+
+2. Edit `deploy-config.json` with your vault path:
+   ```json
+   {
+     "vaultPath": "C:/Users/YourUsername/iCloudDrive/Documents/YourVault",
+     "pluginName": "milestone-timeline"
+   }
+   ```
+
+3. Deploy the plugin:
+   ```bash
+   npm run deploy
+   ```
+
+This copies only the built files (`main.js`, `manifest.json`, `styles.css`) to your vault's `.obsidian/plugins/milestone-timeline` folder, keeping your git repo and development files separate from your synced vault.
+
 ### Project Structure
 ```
 milestone-timeline/

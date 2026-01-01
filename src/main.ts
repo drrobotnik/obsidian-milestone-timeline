@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, TFile } from 'obsidian';
+import { Plugin, WorkspaceLeaf, TFile, Notice } from 'obsidian';
 import { DEFAULT_SETTINGS, VIEW_TYPE_MILESTONE_TIMELINE } from './constants';
 import type { MilestoneTimelineSettings, YearMatch } from './types';
 import MilestoneTimelineView from './views/MilestoneTimelineView';
@@ -21,22 +21,22 @@ export default class MilestoneTimelinePlugin extends Plugin {
 
         // Add ribbon icon to open timeline
         this.addRibbonIcon('calendar-clock', 'Open Milestone Timeline', () => {
-            this.activateView();
+            void this.activateView();
         });
 
         // Add command to open timeline
         this.addCommand({
-            id: 'open-milestone-timeline',
-            name: 'Open Milestone Timeline',
+            id: 'open-timeline',
+            name: 'Open timeline',
             callback: () => {
-                this.activateView();
+                void this.activateView();
             }
         });
 
         // Add help command
         this.addCommand({
             id: 'show-help',
-            name: 'Show Help',
+            name: 'Show help',
             callback: () => {
                 new MilestoneTimelineHelpModal(this.app).open();
             }
@@ -45,7 +45,7 @@ export default class MilestoneTimelinePlugin extends Plugin {
         // Add command to create example correspondence
         this.addCommand({
             id: 'create-example-correspondence',
-            name: 'Create Example Correspondence',
+            name: 'Create example correspondence',
             callback: async () => {
                 await this.createExampleCorrespondence();
             }
@@ -54,7 +54,7 @@ export default class MilestoneTimelinePlugin extends Plugin {
         // Add command to create single penpal correspondence
         this.addCommand({
             id: 'create-penpal-letters',
-            name: 'Create Example: Penpal Letters (French)',
+            name: 'Create example: penpal letters (french)',
             callback: async () => {
                 await this.createPenpalLetters();
             }
@@ -63,7 +63,7 @@ export default class MilestoneTimelinePlugin extends Plugin {
         // Add command to find potential year references
         this.addCommand({
             id: 'find-potential-years',
-            name: 'Find Potential Year References',
+            name: 'Find potential year references',
             callback: async () => {
                 await this.findPotentialYears();
             }
@@ -85,19 +85,22 @@ export default class MilestoneTimelinePlugin extends Plugin {
         } else {
             // Create new leaf in right sidebar
             leaf = workspace.getRightLeaf(false);
-            await leaf?.setViewState({
-                type: VIEW_TYPE_MILESTONE_TIMELINE,
-                active: true,
-            });
+            if (leaf) {
+                await leaf.setViewState({
+                    type: VIEW_TYPE_MILESTONE_TIMELINE,
+                    active: true,
+                });
+            }
         }
 
         if (leaf) {
-            workspace.revealLeaf(leaf);
+            void workspace.revealLeaf(leaf);
         }
     }
 
     async loadSettings() {
-        this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+        const data = await this.loadData() as Partial<MilestoneTimelineSettings> | null;
+        this.settings = Object.assign({}, DEFAULT_SETTINGS, data || {});
     }
 
     async saveSettings() {
@@ -111,7 +114,7 @@ export default class MilestoneTimelinePlugin extends Plugin {
         for (const leaf of leaves) {
             const view = leaf.view;
             if (view instanceof MilestoneTimelineView) {
-                view.refresh();
+                void view.refresh();
             }
         }
     }
@@ -123,11 +126,7 @@ export default class MilestoneTimelinePlugin extends Plugin {
         // Check if folder already exists
         const existingFolder = vault.getAbstractFileByPath(folderPath);
         if (existingFolder) {
-            // Ask user if they want to overwrite
-            const shouldContinue = confirm(
-                'Example correspondence folder already exists. This will create additional example letters. Continue?'
-            );
-            if (!shouldContinue) return;
+            new Notice('Example correspondence folder already exists. Creating additional example letters...');
         } else {
             // Create folder
             await vault.createFolder(folderPath);
@@ -416,8 +415,8 @@ Delete the "Milestone Timeline Examples" folder when you're done exploring!
             try {
                 await vault.create(filePath, letter.content);
                 createdCount++;
-            } catch (error) {
-                console.log(`File ${letter.filename} may already exist, skipping...`);
+            } catch {
+                // File may already exist, skip silently
             }
         }
 
@@ -428,7 +427,7 @@ Delete the "Milestone Timeline Examples" folder when you're done exploring!
             const indexFile = vault.getAbstractFileByPath(indexPath);
             if (indexFile instanceof TFile) {
                 const leaf = this.app.workspace.getLeaf(false);
-                await leaf.openFile(indexFile);
+                void leaf.openFile(indexFile);
             }
 
             // Open the timeline
@@ -449,10 +448,7 @@ Delete the "Milestone Timeline Examples" folder when you're done exploring!
         // Check if folder already exists
         const existingFolder = vault.getAbstractFileByPath(folderPath);
         if (existingFolder) {
-            const shouldContinue = confirm(
-                'Amélie\'s correspondence folder already exists. This will overwrite existing letters. Continue?'
-            );
-            if (!shouldContinue) return;
+            new Notice('Amélie\'s correspondence folder already exists. Overwriting existing letters...');
         } else {
             // Create folder structure
             await vault.createFolder('Grandparent Letters').catch(() => {});
@@ -590,13 +586,13 @@ P.S. - Ci-joint une photo récente de toute la famille lors de Thanksgiving. Oui
             try {
                 await vault.create(filePath, letter.content);
                 createdCount++;
-            } catch (error) {
+            } catch {
                 // If file exists, try to modify it
                 try {
                     await vault.adapter.write(filePath, letter.content);
                     createdCount++;
-                } catch (e) {
-                    console.error(`Failed to create/update ${letter.filename}:`, e);
+                } catch {
+                    // Failed to create/update file, skip silently
                 }
             }
         }
@@ -607,7 +603,7 @@ P.S. - Ci-joint une photo récente de toute la famille lors de Thanksgiving. Oui
             const firstLetter = vault.getAbstractFileByPath(firstLetterPath);
             if (firstLetter instanceof TFile) {
                 const leaf = this.app.workspace.getLeaf(false);
-                await leaf.openFile(firstLetter);
+                void leaf.openFile(firstLetter);
             }
 
             // Open the timeline
@@ -625,7 +621,7 @@ P.S. - Ci-joint une photo récente de toute la famille lors de Thanksgiving. Oui
         const files = vault.getMarkdownFiles();
         
         // Pattern to find potential 4-digit years (1000-2100)
-        const yearPattern = /(?<![\d-\/])(?<!-)(?<!\/)(?<!\[\[)(?<!#year\/)\b(1[0-9]\d{2}|20\d{2}|2100)\b(?![\d-\/])(?!--)(?!\]\])/g;
+        const yearPattern = /(?<![\d-/])(?<!-)(?<!\/)(?<!\[\[)(?<!#year\/)\b(1[0-9]\d{2}|20\d{2}|2100)\b(?![\d-/])(?!--)(?!\]\])/g;
         
         const matches: YearMatch[] = [];
         

@@ -469,3 +469,83 @@
 .milestone-help-modal button:hover {
     background-color: var(--interactive-accent-hover);
 }
+
+/* Potential Years Modal */
+.milestone-years-modal .potential-years-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1em;
+}
+
+.milestone-years-modal .potential-years-header h2 {
+    margin: 0;
+}
+
+.milestone-years-modal .potential-years-progress {
+    color: var(--text-muted);
+}
+
+.milestone-years-modal .potential-years-year-display {
+    padding: 1.5em;
+    background: var(--background-secondary);
+    border-radius: 8px;
+    margin-bottom: 1em;
+    text-align: center;
+}
+
+.milestone-years-modal .potential-years-year-number {
+    font-size: 3em;
+    font-weight: bold;
+    color: var(--text-accent);
+}
+
+.milestone-years-modal .potential-years-file-info {
+    margin-bottom: 1em;
+}
+
+.milestone-years-modal .potential-years-file-link {
+    font-weight: bold;
+}
+
+.milestone-years-modal .potential-years-context {
+    padding: 1em;
+    background: var(--background-primary-alt);
+    border-radius: 5px;
+    margin-bottom: 1.5em;
+    font-family: var(--font-monospace);
+    font-size: 0.9em;
+}
+
+.milestone-years-modal .potential-years-context mark {
+    background: var(--text-highlight-bg);
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.milestone-years-modal .potential-years-instructions {
+    margin-bottom: 1em;
+}
+
+.milestone-years-modal .potential-years-actions {
+    display: flex;
+    gap: 0.5em;
+    margin-bottom: 1em;
+}
+
+.milestone-years-modal .potential-years-actions button {
+    flex: 1;
+    padding: 0.75em;
+}
+
+.milestone-years-modal .potential-years-navigation {
+    display: flex;
+    gap: 0.5em;
+    margin-top: 1em;
+    padding-top: 1em;
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.milestone-years-modal .potential-years-navigation button:last-child {
+    margin-left: auto;
+}

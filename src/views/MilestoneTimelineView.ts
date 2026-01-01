@@ -54,11 +54,11 @@ export default class MilestoneTimelineView extends ItemView {
             cls: 'milestone-search-input'
         });
         
-        this.searchInput.addEventListener('input', async (e) => {
+        this.searchInput.addEventListener('input', (e) => {
             const target = e.target as HTMLInputElement;
             const timelineContent = container.querySelector('.milestone-timeline-content') as HTMLElement;
             if (timelineContent) {
-                await this.renderTimelineContent(timelineContent, target.value);
+                void this.renderTimelineContent(timelineContent, target.value);
             }
         });
         
@@ -77,10 +77,10 @@ export default class MilestoneTimelineView extends ItemView {
             text: 'Refresh',
             cls: 'milestone-refresh-btn'
         });
-        refreshBtn.addEventListener('click', async () => {
+        refreshBtn.addEventListener('click', () => {
             const timelineContent = container.querySelector('.milestone-timeline-content') as HTMLElement;
             if (timelineContent && this.searchInput) {
-                await this.renderTimelineContent(timelineContent, this.searchInput.value);
+                void this.renderTimelineContent(timelineContent, this.searchInput.value);
             }
         });
     }
@@ -151,7 +151,7 @@ export default class MilestoneTimelineView extends ItemView {
             if (shouldShowYearMarkers && previousYear !== null && previousYear !== currentYear) {
                 const yearMarker = timeline.createDiv('milestone-year-marker');
                 const yearMarkerDot = yearMarker.createDiv('milestone-year-marker-dot');
-                yearMarkerDot.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/><circle cx="12" cy="12" r="4" fill="var(--background-primary)"/></svg>';
+                this.createSvgElement(yearMarkerDot, '<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/><circle cx="12" cy="12" r="4" fill="var(--background-primary)"/></svg>');
                 const yearContent = yearMarker.createDiv('milestone-year-content');
                 yearContent.createDiv('milestone-year-line');
                 yearContent.createDiv('milestone-year-label').setText(`${currentYear}`);
@@ -162,7 +162,7 @@ export default class MilestoneTimelineView extends ItemView {
                 // Add year marker for the very first item
                 const yearMarker = timeline.createDiv('milestone-year-marker');
                 const yearMarkerDot = yearMarker.createDiv('milestone-year-marker-dot');
-                yearMarkerDot.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/><circle cx="12" cy="12" r="4" fill="var(--background-primary)"/></svg>';
+                this.createSvgElement(yearMarkerDot, '<svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="currentColor"/><circle cx="12" cy="12" r="4" fill="var(--background-primary)"/></svg>');
                 const yearContent = yearMarker.createDiv('milestone-year-content');
                 yearContent.createDiv('milestone-year-line');
                 yearContent.createDiv('milestone-year-label').setText(`${currentYear}`);
@@ -175,7 +175,7 @@ export default class MilestoneTimelineView extends ItemView {
                 (previousMonth === null || previousMonth !== currentMonth)) {
                 const monthMarker = timeline.createDiv('milestone-month-marker');
                 const monthMarkerDot = monthMarker.createDiv('milestone-month-marker-dot');
-                monthMarkerDot.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" fill="currentColor" rx="2"/></svg>';
+                this.createSvgElement(monthMarkerDot, '<svg width="16" height="16" viewBox="0 0 16 16"><rect x="4" y="4" width="8" height="8" fill="currentColor" rx="2"/></svg>');
                 const monthLabel = monthMarker.createDiv('milestone-month-label');
                 monthLabel.setText(this.getMonthName(currentMonth));
             }
@@ -186,7 +186,7 @@ export default class MilestoneTimelineView extends ItemView {
             const item = timeline.createDiv('milestone-item');
 
             const marker = item.createDiv('milestone-marker');
-            const dot = marker.createDiv('milestone-dot');
+            marker.createDiv('milestone-dot');
 
             const content = item.createDiv('milestone-content');
             
@@ -210,7 +210,7 @@ export default class MilestoneTimelineView extends ItemView {
             // Add tag indicator if this milestone is from a tag
             if (milestone.isTag) {
                 const tagIndicator = dateEl.createSpan('milestone-tag-indicator');
-                tagIndicator.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
+                this.createSvgElement(tagIndicator, '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>');
                 tagIndicator.title = 'From date tag';
             }
 
@@ -236,26 +236,29 @@ export default class MilestoneTimelineView extends ItemView {
                     });
                 });
                 
-                titleEl.addEventListener('click', async (e) => {
+                titleEl.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     
-                    // Open the file
-                    const leaf = this.app.workspace.getLeaf(false);
-                    await leaf.openFile(milestone.file);
-                    
-                    // Jump to the specific line if available
-                    if (milestone.lineNumber !== undefined) {
-                        // Wait for the editor to be ready
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                    // Wrap async logic in IIFE to avoid returning Promise to event listener
+                    void (async () => {
+                        // Open the file
+                        const leaf = this.app.workspace.getLeaf(false);
+                        await leaf.openFile(milestone.file);
                         
-                        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-                        if (activeView && activeView.editor) {
-                            const editor = activeView.editor;
-                            editor.setCursor({ line: milestone.lineNumber, ch: 0 });
-                            editor.scrollIntoView({ from: { line: milestone.lineNumber, ch: 0 }, to: { line: milestone.lineNumber, ch: 0 } }, true);
+                        // Jump to the specific line if available
+                        if (milestone.lineNumber !== undefined) {
+                            // Wait for the editor to be ready
+                            await new Promise(resolve => globalThis.setTimeout(resolve, 100));
+                            
+                            const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+                            if (activeView && activeView.editor) {
+                                const editor = activeView.editor;
+                                editor.setCursor({ line: milestone.lineNumber, ch: 0 });
+                                editor.scrollIntoView({ from: { line: milestone.lineNumber, ch: 0 }, to: { line: milestone.lineNumber, ch: 0 } }, true);
+                            }
                         }
-                    }
+                    })();
                 });
             } else {
                 content.createDiv({
@@ -344,7 +347,7 @@ export default class MilestoneTimelineView extends ItemView {
 
     renderWikiLinks(contextEl: HTMLElement, text: string) {
         // Pattern to match wiki-links: [[link]] or [[link|display text]]
-        const wikiLinkPattern = /\[\[([^\]\|]+)(?:\|([^\]]+))?\]\]/g;
+        const wikiLinkPattern = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
         
         let lastIndex = 0;
         let match;
@@ -379,16 +382,19 @@ export default class MilestoneTimelineView extends ItemView {
                 });
             });
             
-            linkEl.addEventListener('click', async (e) => {
+            linkEl.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                // Try to find and open the file
-                const file = this.app.metadataCache.getFirstLinkpathDest(linkPath, '');
-                if (file) {
-                    const leaf = this.app.workspace.getLeaf(false);
-                    await leaf.openFile(file);
-                }
+                // Wrap async logic in IIFE to avoid returning Promise to event listener
+                void (async () => {
+                    // Try to find and open the file
+                    const file = this.app.metadataCache.getFirstLinkpathDest(linkPath, '');
+                    if (file) {
+                        const leaf = this.app.workspace.getLeaf(false);
+                        await leaf.openFile(file);
+                    }
+                })();
             });
             
             lastIndex = match.index + match[0].length;
@@ -578,17 +584,12 @@ export default class MilestoneTimelineView extends ItemView {
         
         // Pattern 3: Numeric dates with 4-digit year (e.g., "5-3-1918", "12/31/2024")
         // Note: These are interpreted based on format preference (US: M/D/YYYY, Intl: D/M/YYYY)
-        const numericDatePattern = /\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})\b/g;
+        const numericDatePattern = /\b(\d{1,2}[-/]\d{1,2}[-/]\d{4})\b/g;
         
         // Pattern 3b: Numeric dates with 2-digit year (e.g., "1-17-79", "12/31/95")
         // Interpreted as: 00-29 → 2000-2029, 30-99 → 1930-1999
-        const numericDatePattern2Digit = /\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{2})\b/g;
-        
-        // Pattern 4: Year-only dates (e.g., "1809", "1951", "2001")
-        // Matches 4-digit years in reasonable range (1000-2100)
-        // Use negative lookbehind/lookahead to ensure it's not part of a date string
-        const yearOnlyPattern = /(?<![\d-\/])(?<!-)(?<!\/)(?<!\[\[)\b(1[0-9]\d{2}|20\d{2}|2100)\b(?![\d-\/])(?!--)(?!\]\])/g;
-        
+        const numericDatePattern2Digit = /\b(\d{1,2}[-/]\d{1,2}[-/]\d{2})\b/g;
+
         // Heading pattern
         const headingPattern = /^(#{1,6})\s+(.+)$/;
         
@@ -858,7 +859,7 @@ export default class MilestoneTimelineView extends ItemView {
         // Check for incomplete date with placeholders (e.g., "05/dd/1985", "dd/05/1985")
         // Only process if there are actual placeholder literals (dd, mm, yyyy)
         const hasPlaceholders = /(dd|DD|mm|MM|yyyy|YYYY)/i.test(cleanedForParsing);
-        const incompleteDatePattern = /^(\d{1,2}|dd|DD|mm|MM)[-\/](\d{1,2}|dd|DD|mm|MM)[-\/](\d{4}|yyyy|YYYY)$/i;
+        const incompleteDatePattern = /^(\d{1,2}|dd|DD|mm|MM)[-/](\d{1,2}|dd|DD|mm|MM)[-/](\d{4}|yyyy|YYYY)$/i;
         const incompleteMatch = cleanedForParsing.match(incompleteDatePattern);
         
         if (incompleteMatch && hasPlaceholders) {
@@ -956,7 +957,7 @@ export default class MilestoneTimelineView extends ItemView {
         }
         
         // Check if this is an ambiguous numeric date (M/D/YYYY or D/M/YYYY)
-        const numericPattern = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/;
+        const numericPattern = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/;
         const numericMatch = cleanedForParsing.match(numericPattern);
         
         if (numericMatch) {
@@ -991,7 +992,7 @@ export default class MilestoneTimelineView extends ItemView {
         }
         
         // Check for 2-digit year format (M/D/YY or D/M/YY) - e.g., "1-17-79"
-        const numericPattern2Digit = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/;
+        const numericPattern2Digit = /^(\d{1,2})[-/](\d{1,2})[-/](\d{2})$/;
         const numericMatch2Digit = cleanedForParsing.match(numericPattern2Digit);
         
         if (numericMatch2Digit) {
@@ -1083,6 +1084,15 @@ export default class MilestoneTimelineView extends ItemView {
     getMonthName(monthIndex: number): string {
         const locale = LOCALIZATIONS[this.plugin.settings.language] || LOCALIZATIONS['en'];
         return locale.monthNames.full[monthIndex];
+    }
+
+    private createSvgElement(container: HTMLElement, svgString: string): void {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgString, 'image/svg+xml');
+        const svgElement = doc.documentElement;
+        if (svgElement && svgElement.tagName.toLowerCase() === 'svg') {
+            container.appendChild(svgElement);
+        }
     }
 
     async onClose() {

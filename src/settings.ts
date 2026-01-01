@@ -13,7 +13,7 @@ export default class MilestoneTimelineSettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        containerEl.createEl('h2', { text: 'Milestone Timeline Settings' });
+        new Setting(containerEl).setName('Display').setHeading();
 
         new Setting(containerEl)
             .setName('Sort order')
@@ -53,7 +53,7 @@ export default class MilestoneTimelineSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Exclude screenshot dates')
-            .setDesc('Ignore dates found in screenshot filenames like "Screenshot 2025-11-07.png"')
+            .setDesc('Ignore dates found in screenshot filenames like "screenshot 2025-11-07.png".')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.excludeScreenshots)
                 .onChange(async (value) => {
@@ -63,6 +63,7 @@ export default class MilestoneTimelineSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Include tag dates')
+            // eslint-disable-next-line obsidianmd/ui/sentence-case  -- False positive: YYYY/MM/DD is a date format.
             .setDesc('Extract dates from tags in the format #date/YYYY/MM/DD')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.includeTagDates)
@@ -73,9 +74,12 @@ export default class MilestoneTimelineSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Date format preference')
+            // eslint-disable-next-line obsidianmd/ui/sentence-case  -- False positive: ISO is an acronym
             .setDesc('How to interpret ambiguous numeric dates like "1/2/1953". ISO dates (2024-03-15) and natural language dates remain unambiguous.')
             .addDropdown(dropdown => dropdown
+                // eslint-disable-next-line obsidianmd/ui/sentence-case  -- explaining date formats
                 .addOption('US', 'US (M/D/YYYY) - 1/2/1953 = Jan 2, 1953')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case  -- explaining date formats
                 .addOption('International', 'International (D/M/YYYY) - 1/2/1953 = Feb 1, 1953')
                 .setValue(this.plugin.settings.dateFormatPreference)
                 .onChange(async (value) => {
@@ -85,11 +89,15 @@ export default class MilestoneTimelineSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Language')
+            // eslint-disable-next-line obsidianmd/ui/sentence-case  -- False positive: Describing accurate date formats.
             .setDesc('Language for month names and natural language date parsing. This affects how dates like "May 1985" or "Mayo 1985" are recognized.')
             .addDropdown(dropdown => dropdown
                 .addOption('en', 'English')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case  -- False positive: Spanish is a language name that should be capitalized.
                 .addOption('es', 'Español (Spanish)')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case  -- False positive: French is a language name that should be capitalized.
                 .addOption('fr', 'Français (French)')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case  -- False positive: Japanese is a language name that should be capitalized.
                 .addOption('ja', '日本語 (Japanese)')
                 .setValue(this.plugin.settings.language)
                 .onChange(async (value) => {

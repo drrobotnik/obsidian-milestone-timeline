@@ -1,0 +1,152 @@
+name: Validate Plugin
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+
+      - name: Build plugin
+        run: |
+          npm install
+          npm run build
+
+      - name: Validate manifest.json
+        run: |
+          echo "Validating manifest.json..."
+          
+          # Check if manifest.json exists
+          if [ ! -f "manifest.json" ]; then
+            echo "❌ manifest.json not found"
+            exit 1
+          fi
+          
+          # Check if it's valid JSON
+          if ! jq empty manifest.json 2>/dev/null; then
+            echo "❌ manifest.json is not valid JSON"
+            exit 1
+          fi
+          
+          # Extract version
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "Plugin version: $VERSION"
+          
+          # Check required fields
+          for field in id name version minAppVersion description author; do
+            VALUE=$(jq -r ".$field" manifest.json)
+            if [ "$VALUE" = "null" ] || [ -z "$VALUE" ]; then
+              echo "❌ Required field '$field' is missing or empty"
+              exit 1
+            fi
+          done
+          
+          echo "✅ manifest.json is valid"
+
+      - name: Validate build outputs
+        run: |
+          echo "Validating build outputs..."
+          
+          # Check if main.js exists
+          if [ ! -f "main.js" ]; then
+            echo "❌ main.js not found (build may have failed)"
+            exit 1
+          fi
+          
+          # Check if main.js has content
+          if [ ! -s "main.js" ]; then
+            echo "❌ main.js is empty"
+            exit 1
+          fi
+          
+          echo "✅ main.js exists and has content"
+          
+          # Check styles.css if it exists in source
+          if [ -f "styles.css" ]; then
+            echo "✅ styles.css found"
+          fi
+
+      - name: Check for latest release (if tag exists)
+        run: |
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "Checking if release $VERSION exists..."
+          
+          # This will only work if the release already exists
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION exists. Checking assets..."
+            
+            ASSETS=$(gh release view "$VERSION" --json assets -q '.assets[].name')
+            
+            echo "Release assets:"
+            echo "$ASSETS"
+            
+            if ! echo "$ASSETS" | grep -q "main.js"; then
+              echo "⚠️  Warning: Release $VERSION is missing main.js asset"
+            else
+              echo "✅ Release has main.js"
+            fi
+            
+            if ! echo "$ASSETS" | grep -q "manifest.json"; then
+              echo "⚠️  Warning: Release $VERSION is missing manifest.json asset"
+            else
+              echo "✅ Release has manifest.json"
+            fi
+          else
+            echo "ℹ️  Release $VERSION does not exist yet"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Validate versions.json
+        run: |
+          echo "Validating versions.json..."
+          
+          if [ ! -f "versions.json" ]; then
+            echo "⚠️  versions.json not found (optional)"
+            exit 0
+          fi
+          
+          if ! jq empty versions.json 2>/dev/null; then
+            echo "❌ versions.json is not valid JSON"
+            exit 1
+          fi
+          
+          VERSION=$(jq -r '.version' manifest.json)
+          
+          # Check if current version is in versions.json
+          if ! jq -e ".[\"$VERSION\"]" versions.json >/dev/null 2>&1; then
+            echo "⚠️  Warning: Version $VERSION not found in versions.json"
+          else
+            echo "✅ Version $VERSION found in versions.json"
+          fi
+
+      - name: Summary
+        run: |
+          echo "================================"
+          echo "Validation Summary"
+          echo "================================"
+          VERSION=$(jq -r '.version' manifest.json)
+          echo "Plugin: $(jq -r '.name' manifest.json)"
+          echo "Version: $VERSION"
+          echo "ID: $(jq -r '.id' manifest.json)"
+          echo ""
+          echo "✅ All core validations passed!"
+          echo ""
+          echo "Before submitting to Obsidian community plugins:"
+          echo "1. Create a release tag: git tag $VERSION && git push origin $VERSION"
+          echo "2. Verify the release workflow attaches main.js, manifest.json, and styles.css"
+          echo "3. Check the release page on GitHub to confirm assets are attached"
